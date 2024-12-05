@@ -12,6 +12,7 @@ struct AddCityView: View {
     @State private var searchText: String = ""
     @State private var isLoading: Bool = false
     @State private var errorMessage: String? = nil
+    @Environment(\.presentationMode) var presentationMode
     
     let weatherService = WeatherService()
     
@@ -106,6 +107,7 @@ struct AddCityView: View {
                                     localTime: "N/A" // You can add logic to fetch and format local time
                                 )
                                 self.cities.append(newCity)
+                                self.presentationMode.wrappedValue.dismiss()
                             case .failure(let error):
                                 print("Error fetching weather data: \(error)")
                                 self.errorMessage = error.localizedDescription
