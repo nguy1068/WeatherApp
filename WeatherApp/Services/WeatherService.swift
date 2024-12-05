@@ -15,46 +15,69 @@ struct WeatherService {
         let name: String
         let lat: Double
         let lon: Double
+        let country: String?
+        let state: String?
     }
 
     struct WeatherResponse: Codable {
-        let current: CurrentWeather
-        let hourly: [HourlyWeather]
-        let daily: [DailyWeather]
+        let coord: Coord
+        let weather: [Weather]
+        let main: Main
+        let visibility: Int
+        let wind: Wind
+        let clouds: Clouds
+        let dt: Int
+        let sys: Sys
+        let timezone: Int
+        let id: Int
+        let name: String
+        let cod: Int
 
-        struct CurrentWeather: Codable {
-            let temp: Double?
-            let weather: [Weather]
-        }
-
-        struct HourlyWeather: Codable {
-            let temp: Double?
-            let weather: [Weather]
-        }
-
-        struct DailyWeather: Codable {
-            let temp: Temp
-            let weather: [Weather]
-
-            struct Temp: Codable {
-                let day: Double
-                let min: Double
-                let max: Double
-            }
+        struct Coord: Codable {
+            let lon: Double
+            let lat: Double
         }
 
         struct Weather: Codable {
+            let id: Int
+            let main: String
             let description: String
             let icon: String
+        }
+
+        struct Main: Codable {
+            let temp: Double
+            let feels_like: Double
+            let temp_min: Double
+            let temp_max: Double
+            let pressure: Int
+            let humidity: Int
+            let sea_level: Int?
+            let grnd_level: Int?
+        }
+
+        struct Wind: Codable {
+            let speed: Double
+            let deg: Int
+            let gust: Double?
+        }
+
+        struct Clouds: Codable {
+            let all: Int
+        }
+
+        struct Sys: Codable {
+            let type: Int?
+            let id: Int?
+            let country: String
+            let sunrise: Int
+            let sunset: Int
         }
     }
 
     // Function to get coordinates by city name
-    func getCoordinates(
-        for city: String, completion: @escaping (Result<[GeoResponse], Error>) -> Void
-    ) {
-        let urlString =
-            "https://api.openweathermap.org/geo/1.0/direct?q=\(city)&limit=100&appid=\(apiKey)"
+    func getCoordinates(for city: String, completion: @escaping (Result<[GeoResponse], Error>) -> Void) {
+        let urlString = "https://api.openweathermap.org/geo/1.0/direct?q=\(city)&limit=100&appid=\(apiKey)"
         guard let url = URL(string: urlString) else {
             completion(.failure(NSError(domain: "Invalid URL", code: 0, userInfo: nil)))
             return
@@ -62,7 +85,7 @@ struct WeatherService {
 
         print("Fetching coordinates for URL: \(urlString)")
 
-        URLSession.shared.dataTask(with: url) { data, response, error in
+        URLSession.shared.dataTask(with: url) { data, _, error in
             if let error = error {
                 completion(.failure(error))
                 return
@@ -82,12 +105,34 @@ struct WeatherService {
         }.resume()
     }
 
+    struct ErrorResponse: Codable {
+        let cod: String
+        let message: String
+
+        enum CodingKeys: String, CodingKey {
+            case cod
+            case message
+        }
+
+        init(from decoder: Decoder) throws {
+            let container = try decoder.container(keyedBy: CodingKeys.self)
+
+            // Attempt to decode `cod` as a String
+            if let codString = try? container.decode(String.self, forKey: .cod) {
+                self.cod = codString
+            } else {
+                // If it fails, try to decode it as an Int and convert to String
+                let codInt = try container.decode(Int.self, forKey: .cod)
+                self.cod = String(codInt)
+            }
+
+            self.message = try container.decode(String.self, forKey: .message)
+        }
+    }
+
     // Function to get weather data by coordinates
-    func getWeather(
-        lat: Double, lon: Double, completion: @escaping (Result<WeatherResponse, Error>) -> Void
-    ) {
-        let urlString =
-            "https://api.openweathermap.org/data/3.0/onecall?lat=\(lat)&lon=\(lon)&exclude=minutely&appid=\(apiKey)"
+    func getWeather(lat: Double, lon: Double, completion: @escaping (Result<WeatherResponse, Error>) -> Void) {
+        let urlString = "https://api.openweathermap.org/data/2.5/weather?lat=\(lat)&lon=\(lon)&appid=\(apiKey)"
         guard let url = URL(string: urlString) else {
             completion(.failure(NSError(domain: "Invalid URL", code: 0, userInfo: nil)))
             return
@@ -95,7 +140,7 @@ struct WeatherService {
 
         print("Fetching weather for URL: \(urlString)")
 
-        URLSession.shared.dataTask(with: url) { data, response, error in
+        URLSession.shared.dataTask(with: url) { data, _, error in
             if let error = error {
                 completion(.failure(error))
                 return
@@ -107,49 +152,46 @@ struct WeatherService {
             }
 
             do {
+                // Attempt to decode the WeatherResponse
                 let weatherResponse = try JSONDecoder().decode(WeatherResponse.self, from: data)
-                // Validate weather data
-                if let currentTemp = weatherResponse.current.temp {
-                    print("Current temperature: \(currentTemp)")
-                } else {
-                    print("Received nil for current temperature")
-                    completion(.failure(NSError(domain: "Invalid temperature data", code: 0, userInfo: nil)))
-                    return
-                }
-                print("Weather response: \(weatherResponse)")
                 completion(.success(weatherResponse))
             } catch {
-                print("Error decoding weather response: \(error)")
-                completion(.failure(error))
+                // Handle the case where the response is not in the expected format
+                do {
+                    let errorResponse = try JSONDecoder().decode(ErrorResponse.self, from: data)
+                    completion(.failure(NSError(domain: errorResponse.message, code: 0, userInfo: nil)))
+                } catch {
+                    completion(.failure(error))
+                }
             }
         }.resume()
     }
 
     // Function to pre-fetch multiple cities by their names
-    func prefetchCities(cityNames: [String], completion: @escaping (Result<[GeoResponse], Error>) -> Void) {
-        let group = DispatchGroup()
-        var allGeoResponses: [GeoResponse] = []
-        var fetchError: Error?
-
-        for city in cityNames {
-            group.enter()
-            getCoordinates(for: city) { result in
-                switch result {
-                case .success(let geoResponses):
-                    allGeoResponses.append(contentsOf: geoResponses)
-                case .failure(let error):
-                    fetchError = error
-                }
-                group.leave()
-            }
-        }
-
-        group.notify(queue: .main) {
-            if let error = fetchError {
-                completion(.failure(error))
-            } else {
-                completion(.success(allGeoResponses))
-            }
-        }
-    }
+//    func prefetchCities(cityNames: [String], completion: @escaping (Result<[GeoResponse], Error>) -> Void) {
+//        let group = DispatchGroup()
+//        var allGeoResponses: [GeoResponse] = []
+//        var fetchError: Error?
+//
+//        for city in cityNames {
+//            group.enter()
+//            getCoordinates(for: city) { result in
+//                switch result {
+//                case .success(let geoResponses):
+//                    allGeoResponses.append(contentsOf: geoResponses)
+//                case .failure(let error):
+//                    fetchError = error
+//                }
+//                group.leave()
+//            }
+//        }
+//
+//        group.notify(queue: .main) {
+//            if let error = fetchError {
+//                completion(.failure(error))
+//            } else {
+//                completion(.success(allGeoResponses))
+//            }
+//        }
+//    }
 }
