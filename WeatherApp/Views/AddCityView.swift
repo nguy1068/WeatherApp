@@ -46,7 +46,7 @@ struct AddCityView: View {
                 Text(errorMessage)
                     .foregroundColor(.red)
             } else {
-                List(prefetchingManager.preFetchedCities.prefix(100), id: \.name) { result in
+                List(uniqueCities(prefetchingManager.preFetchedCities).prefix(100), id: \.name) { result in
                     Button(action: {
                         addCity(result)
                     }) {
@@ -87,6 +87,15 @@ struct AddCityView: View {
     private func addCity(_ geoResponse: WeatherService.GeoResponse) {
         let newCity = City(name: geoResponse.name, temperature: "N/A", weather: "N/A", icon: "cloud.fill", localTime: "N/A")
         cities.append(newCity)
+    }
+    
+    private func uniqueCities(_ cities: [WeatherService.GeoResponse]) -> [WeatherService.GeoResponse] {
+        var seen = Set<String>()
+        return cities.filter { city in
+            guard !seen.contains(city.name) else { return false }
+            seen.insert(city.name)
+            return true
+        }
     }
 }
 
