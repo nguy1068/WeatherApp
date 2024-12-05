@@ -10,7 +10,6 @@ import SwiftUI
 struct AddCityView: View {
     @Binding var cities: [City]
     @State private var searchText: String = ""
-    @State private var searchResults: [WeatherService.GeoResponse] = []
     @State private var isLoading: Bool = false
     @State private var errorMessage: String? = nil
     
@@ -46,7 +45,7 @@ struct AddCityView: View {
                 Text(errorMessage)
                     .foregroundColor(.red)
             } else {
-                List(uniqueCities(prefetchingManager.preFetchedCities).prefix(100), id: \.name) { result in
+                List(filteredCities, id: \.name) { result in
                     Button(action: {
                         addCity(result)
                     }) {
@@ -61,11 +60,18 @@ struct AddCityView: View {
         }
     }
     
+    private var filteredCities: [WeatherService.GeoResponse] {
+        if searchText.isEmpty {
+            return uniqueCities(prefetchingManager.preFetchedCities)
+        } else {
+            return uniqueCities(prefetchingManager.preFetchedCities.filter { $0.name.lowercased().contains(searchText.lowercased()) })
+        }
+    }
+    
     private func searchCity() {
         guard !searchText.isEmpty else { return }
         isLoading = true
         errorMessage = nil
-        searchResults = [] // Clear previous results
         
         print("Searching for city: \(searchText)")
         
@@ -75,7 +81,7 @@ struct AddCityView: View {
                 switch result {
                 case .success(let geoResponses):
                     print("Received geo responses: \(geoResponses)")
-                    searchResults = geoResponses
+                    prefetchingManager.preFetchedCities.append(contentsOf: geoResponses)
                 case .failure(let error):
                     print("Error fetching geo responses: \(error)")
                     errorMessage = error.localizedDescription
