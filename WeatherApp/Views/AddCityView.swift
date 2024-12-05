@@ -13,8 +13,6 @@ struct AddCityView: View {
     @State private var isLoading: Bool = false
     @State private var errorMessage: String? = nil
     
-    @ObservedObject var prefetchingManager = PrefetchingManager()
-    
     let weatherService = WeatherService()
     
     var body: some View {
@@ -45,26 +43,23 @@ struct AddCityView: View {
                 Text(errorMessage)
                     .foregroundColor(.red)
             } else {
-                List(filteredCities, id: \.name) { result in
+                List(filteredCities, id: \.self) { cityName in
                     Button(action: {
-                        addCity(result)
+                        addCity(cityName)
                     }) {
-                        Text(result.name)
+                        Text(cityName)
                     }
                 }
             }
         }
         .padding()
-        .onAppear {
-            prefetchingManager.prefetchCities()
-        }
     }
     
-    private var filteredCities: [WeatherService.GeoResponse] {
+    private var filteredCities: [String] {
         if searchText.isEmpty {
-            return uniqueCities(prefetchingManager.preFetchedCities)
+            return default_city
         } else {
-            return uniqueCities(prefetchingManager.preFetchedCities.filter { $0.name.lowercased().contains(searchText.lowercased()) })
+            return default_city.filter { $0.lowercased().contains(searchText.lowercased()) }
         }
     }
     
@@ -81,7 +76,9 @@ struct AddCityView: View {
                 switch result {
                 case .success(let geoResponses):
                     print("Received geo responses: \(geoResponses)")
-                    prefetchingManager.preFetchedCities.append(contentsOf: geoResponses)
+                    if let firstGeoResponse = geoResponses.first {
+                        addCity(firstGeoResponse.name)
+                    }
                 case .failure(let error):
                     print("Error fetching geo responses: \(error)")
                     errorMessage = error.localizedDescription
@@ -90,17 +87,39 @@ struct AddCityView: View {
         }
     }
     
-    private func addCity(_ geoResponse: WeatherService.GeoResponse) {
-        let newCity = City(name: geoResponse.name, temperature: "N/A", weather: "N/A", icon: "cloud.fill", localTime: "N/A")
-        cities.append(newCity)
-    }
-    
-    private func uniqueCities(_ cities: [WeatherService.GeoResponse]) -> [WeatherService.GeoResponse] {
-        var seen = Set<String>()
-        return cities.filter { city in
-            guard !seen.contains(city.name) else { return false }
-            seen.insert(city.name)
-            return true
+    private func addCity(_ cityName: String) {
+        isLoading = true
+        weatherService.getCoordinates(for: cityName) { result in
+            switch result {
+            case .success(let geoResponses):
+                if let geoResponse = geoResponses.first {
+                    self.weatherService.getWeather(lat: geoResponse.lat, lon: geoResponse.lon) { result in
+                        DispatchQueue.main.async {
+                            self.isLoading = false
+                            switch result {
+                            case .success(let weatherResponse):
+                                let newCity = City(
+                                    name: geoResponse.name,
+                                    temperature: "\(weatherResponse.main.temp)°C",
+                                    weather: weatherResponse.weather.first?.description ?? "N/A",
+                                    icon: weatherResponse.weather.first?.icon ?? "cloud.fill",
+                                    localTime: "N/A" // You can add logic to fetch and format local time
+                                )
+                                self.cities.append(newCity)
+                            case .failure(let error):
+                                print("Error fetching weather data: \(error)")
+                                self.errorMessage = error.localizedDescription
+                            }
+                        }
+                    }
+                }
+            case .failure(let error):
+                DispatchQueue.main.async {
+                    self.isLoading = false
+                    print("Error fetching geo responses: \(error)")
+                    self.errorMessage = error.localizedDescription
+                }
+            }
         }
     }
 }
