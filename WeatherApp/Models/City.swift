@@ -8,8 +8,10 @@
 import SwiftUI
 
 struct City: Identifiable {
-    let id: UUID
+    let id = UUID()
     let name: String
-    let coordinates: (latitude: Double, longitude: Double)
-    var weather: Weather?
+    let temperature: String
+    let weather: String
+    let icon: String
+    let localTime: String
 }
