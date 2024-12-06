@@ -100,9 +100,10 @@ struct AddCityView: View {
                             switch result {
                             case .success(let weatherResponse):
                                 let localTime = formatLocalTime(timezoneOffset: weatherResponse.timezone)
+                                let temperatureCelsius = weatherResponse.main.temp - 273.15
                                 let newCity = City(
                                     name: geoResponse.name,
-                                    temperature: "\(weatherResponse.main.temp)°C",
+                                    temperature: String(format: "%.1f°C", temperatureCelsius),
                                     weather: weatherResponse.weather.first?.description ?? "N/A",
                                     icon: weatherResponse.weather.first?.icon ?? "cloud.fill",
                                     localTime: localTime
@@ -128,10 +129,11 @@ struct AddCityView: View {
     
     private func formatLocalTime(timezoneOffset: Int) -> String {
         let date = Date()
+        let localTime = date.addingTimeInterval(TimeInterval(timezoneOffset))
         let dateFormatter = DateFormatter()
         dateFormatter.timeStyle = .short
         dateFormatter.timeZone = TimeZone(secondsFromGMT: timezoneOffset)
-        return dateFormatter.string(from: date)
+        return dateFormatter.string(from: localTime)
     }
 
 }
