@@ -98,8 +98,10 @@ struct WeatherService {
 
             do {
                 let geoResponse = try JSONDecoder().decode([GeoResponse].self, from: data)
+                print("GeoResponse: \(geoResponse)")
                 completion(.success(geoResponse))
             } catch {
+                print("Error decoding GeoResponse: \(error)")
                 completion(.failure(error))
             }
         }.resume()
@@ -154,44 +156,19 @@ struct WeatherService {
             do {
                 // Attempt to decode the WeatherResponse
                 let weatherResponse = try JSONDecoder().decode(WeatherResponse.self, from: data)
+                print("WeatherResponse: \(weatherResponse)")
                 completion(.success(weatherResponse))
             } catch {
                 // Handle the case where the response is not in the expected format
                 do {
                     let errorResponse = try JSONDecoder().decode(ErrorResponse.self, from: data)
+                    print("ErrorResponse: \(errorResponse)")
                     completion(.failure(NSError(domain: errorResponse.message, code: 0, userInfo: nil)))
                 } catch {
+                    print("Error decoding WeatherResponse: \(error)")
                     completion(.failure(error))
                 }
             }
         }.resume()
     }
-
-    // Function to pre-fetch multiple cities by their names
-//    func prefetchCities(cityNames: [String], completion: @escaping (Result<[GeoResponse], Error>) -> Void) {
-//        let group = DispatchGroup()
-//        var allGeoResponses: [GeoResponse] = []
-//        var fetchError: Error?
-//
-//        for city in cityNames {
-//            group.enter()
-//            getCoordinates(for: city) { result in
-//                switch result {
-//                case .success(let geoResponses):
-//                    allGeoResponses.append(contentsOf: geoResponses)
-//                case .failure(let error):
-//                    fetchError = error
-//                }
-//                group.leave()
-//            }
-//        }
-//
-//        group.notify(queue: .main) {
-//            if let error = fetchError {
-//                completion(.failure(error))
-//            } else {
-//                completion(.success(allGeoResponses))
-//            }
-//        }
-//    }
 }

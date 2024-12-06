@@ -99,12 +99,13 @@ struct AddCityView: View {
                             self.isLoading = false
                             switch result {
                             case .success(let weatherResponse):
+                                let localTime = formatLocalTime(timezoneOffset: weatherResponse.timezone)
                                 let newCity = City(
                                     name: geoResponse.name,
                                     temperature: "\(weatherResponse.main.temp)°C",
                                     weather: weatherResponse.weather.first?.description ?? "N/A",
                                     icon: weatherResponse.weather.first?.icon ?? "cloud.fill",
-                                    localTime: "N/A" // You can add logic to fetch and format local time
+                                    localTime: localTime
                                 )
                                 self.cities.append(newCity)
                                 self.presentationMode.wrappedValue.dismiss()
@@ -124,6 +125,15 @@ struct AddCityView: View {
             }
         }
     }
+    
+    private func formatLocalTime(timezoneOffset: Int) -> String {
+        let date = Date()
+        let dateFormatter = DateFormatter()
+        dateFormatter.timeStyle = .short
+        dateFormatter.timeZone = TimeZone(secondsFromGMT: timezoneOffset)
+        return dateFormatter.string(from: date)
+    }
+
 }
 
 struct AddCityView_Previews: PreviewProvider {

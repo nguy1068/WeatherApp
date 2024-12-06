@@ -22,7 +22,7 @@ struct CityRow: View {
             }
             Spacer()
             VStack {
-                Image("default_weather_icon")
+                Image(systemName: city.icon)
                     .resizable()
                     .aspectRatio(contentMode: .fill)
                     .frame(width: 80, height: 80)
@@ -36,8 +36,7 @@ struct CityRow: View {
 // Define the CityListView
 struct CityListView: View {
     @State private var cities: [City] = [
-        City(name: "New York", temperature: "22°C", weather: "Sunny", icon: "sun.max.fill", localTime: "10:00 AM"),
-        City(name: "London", temperature: "15°C", weather: "Cloudy", icon: "cloud.fill", localTime: "3:00 PM")
+        City(name: "New York", temperature: "22°C", weather: "Sunny", icon: "sun.max.fill", localTime: "10:00 AM")
     ]
     @State private var searchText: String = ""
     @State private var showingAddCityView: Bool = false
