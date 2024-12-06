@@ -1,7 +1,7 @@
 {
   "images" : [
     {
-      "filename" : "default_weather_icon.png",
+      "filename" : "clear-sky.png",
       "idiom" : "universal",
       "scale" : "1x"
     },

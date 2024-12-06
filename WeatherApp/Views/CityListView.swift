@@ -17,22 +17,39 @@ struct CityRow: View {
             VStack(alignment: .leading, spacing: 10) {
                 Text("\(city.name)")
                     .font(.system(size: 24))
+                    .lineLimit(1)
+                    .truncationMode(.tail)
+                    .frame(maxWidth: 200, alignment: .leading)
+
                 Text(city.temperature)
                     .font(.system(size: 32))
                 Text("Local Time: \(city.localTime)")
+                    .font(.system(size: 16))
+                    .foregroundColor(Color.gray)
             }
             Spacer()
             if !isEditing {
-                VStack {
-                    Image(systemName: city.icon)
-                        .resizable()
-                        .aspectRatio(contentMode: .fill)
-                        .frame(width: 80, height: 80)
-                        .clipped()
-                    Text("\(city.weather)")
+                HStack {
+                    Spacer() // This will push the content to the right
+                    VStack(alignment: .trailing) {
+                        Image(imageName(for: city.weather))
+                            .resizable()
+                            .aspectRatio(contentMode: .fill)
+                            .frame(width: 80, height: 80)
+                            .clipped()
+
+                        Text("\(city.weather ?? "No weather data")")
+                            .multilineTextAlignment(.trailing)
+                    }
                 }
             }
         }
+    }
+
+    // Function to determine the image name
+    private func imageName(for weather: String?) -> String {
+        let validWeatherNames = ["broken clouds", "clear sky", "few clouds", "haze", "light shower snow", "overcast clouds", "  smoke", "sunny"]
+        return validWeatherNames.contains(weather ?? "") ? weather! : "default"
     }
 }
 
