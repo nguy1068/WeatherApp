@@ -20,24 +20,29 @@ struct AddCityView: View {
         VStack {
             Text("Add City")
                 .font(.headline)
-                .padding()
+                .padding(.top, 20)
             
             HStack {
                 Image(systemName: "magnifyingglass")
                     .foregroundColor(.gray)
                 TextField("Search for a city", text: $searchText)
                     .textFieldStyle(PlainTextFieldStyle())
+                    .padding(.vertical, 0)
+                    .frame(height: 40)
                 Button(action: {
                     searchCity()
                 }) {
                     Text("Add")
+                        .fontWeight(.semibold)
+                        .padding(.horizontal)
+                        .frame(height: 36)
                 }
             }
-            .padding()
-            .background(Color.gray.opacity(0.2))
+            .padding(.horizontal,10)
+            .background(Color(.systemGray6))
             .cornerRadius(8)
-            .padding(.horizontal)
-            
+            .padding()
+
             if isLoading {
                 ProgressView()
             } else if let errorMessage = errorMessage {
@@ -53,7 +58,6 @@ struct AddCityView: View {
                 }
             }
         }
-        .padding()
     }
     
     private var filteredCities: [String] {
@@ -129,13 +133,11 @@ struct AddCityView: View {
     
     private func formatLocalTime(timezoneOffset: Int) -> String {
         let date = Date()
-        let localTime = date.addingTimeInterval(TimeInterval(timezoneOffset))
         let dateFormatter = DateFormatter()
         dateFormatter.timeStyle = .short
         dateFormatter.timeZone = TimeZone(secondsFromGMT: timezoneOffset)
-        return dateFormatter.string(from: localTime)
+        return dateFormatter.string(from: date)
     }
-
 }
 
 struct AddCityView_Previews: PreviewProvider {
