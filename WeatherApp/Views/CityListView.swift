@@ -10,6 +10,7 @@ import SwiftUI
 // Define a CityRow view to display city details
 struct CityRow: View {
     let city: City
+    let isEditing: Bool
 
     var body: some View {
         HStack {
@@ -21,13 +22,15 @@ struct CityRow: View {
                 Text("Local Time: \(city.localTime)")
             }
             Spacer()
-            VStack {
-                Image(systemName: city.icon)
-                    .resizable()
-                    .aspectRatio(contentMode: .fill)
-                    .frame(width: 80, height: 80)
-                    .clipped()
-                Text("\(city.weather)")
+            if !isEditing {
+                VStack {
+                    Image(systemName: city.icon)
+                        .resizable()
+                        .aspectRatio(contentMode: .fill)
+                        .frame(width: 80, height: 80)
+                        .clipped()
+                    Text("\(city.weather)")
+                }
             }
         }
     }
@@ -40,16 +43,24 @@ struct CityListView: View {
     ]
     @State private var searchText: String = ""
     @State private var showingAddCityView: Bool = false
+    @State private var isEditing: Bool = false
 
     var body: some View {
         NavigationView {
             ZStack {
                 Color.white.ignoresSafeArea()
-                List(filteredCities) { city in
-                    CityRow(city: city)
+                List {
+                    ForEach(filteredCities) { city in
+                        CityRow(city: city, isEditing: isEditing)
+                    }
+                    .onDelete(perform: deleteCity)
+                    .onMove(perform: moveCity)
                 }
                 .navigationTitle("Cities")
                 .toolbar {
+                    ToolbarItem(placement: .navigationBarLeading) {
+                        EditButton()
+                    }
                     ToolbarItem(placement: .navigationBarTrailing) {
                         Button(action: {
                             showingAddCityView = true
@@ -64,6 +75,10 @@ struct CityListView: View {
                 .sheet(isPresented: $showingAddCityView) {
                     AddCityView(cities: $cities)
                 }
+                .environment(\.editMode, Binding(
+                    get: { isEditing ? .active : .inactive },
+                    set: { isEditing = $0 == .active }
+                ))
             }
         }
     }
@@ -74,6 +89,14 @@ struct CityListView: View {
         } else {
             return cities.filter { $0.name.lowercased().contains(searchText.lowercased()) }
         }
+    }
+
+    private func deleteCity(at offsets: IndexSet) {
+        cities.remove(atOffsets: offsets)
+    }
+
+    private func moveCity(from source: IndexSet, to destination: Int) {
+        cities.move(fromOffsets: source, toOffset: destination)
     }
 }
 
