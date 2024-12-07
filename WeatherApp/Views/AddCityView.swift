@@ -12,7 +12,8 @@ struct AddCityView: View {
     @State private var searchText: String = ""
     @State private var isLoading: Bool = false
     @State private var errorMessage: String? = nil
-    @State private var matchedCities: [String] = []
+    @State private var matchedCities: Set<String> = []
+    @State private var cachedCities: Set<String> = []
     @Environment(\.presentationMode) var presentationMode
 
     let weatherService = WeatherService()
@@ -24,21 +25,40 @@ struct AddCityView: View {
                 .font(.headline)
                 .padding()
 
-            HStack {
-                Image(systemName: "magnifyingglass")
-                    .foregroundColor(.gray)
-                TextField("Search for a city", text: $searchText)
-                    .textFieldStyle(PlainTextFieldStyle())
-                Button(action: {
-                    searchCity()
-                }) {
-                    Text("Add")
+            VStack {
+                HStack {
+                    Image(systemName: "magnifyingglass")
+                        .foregroundColor(.gray)
+                    TextField("Search for a city", text: $searchText)
+                        .textFieldStyle(PlainTextFieldStyle())
+                    Button(action: {
+                        searchCity()
+                    }) {
+                        Text("Add")
+                    }
+                }
+                .padding()
+                .background(Color.gray.opacity(0.2))
+                .cornerRadius(8)
+                .padding(.horizontal)
+
+                if !cachedCities.isEmpty {
+                    HStack {
+                        Spacer()
+                        Image(systemName: "trash")
+                            .foregroundColor(.gray)
+                        Button(action: {
+                            clearHistory()
+                        }) {
+                            Text("Clear history")
+                                .font(.callout)
+                                .foregroundColor(.gray)
+                        }
+                    }
+                    .padding(.horizontal)
+                    .padding(.vertical, 10)
                 }
             }
-            .padding()
-            .background(Color.gray.opacity(0.2))
-            .cornerRadius(8)
-            .padding(.horizontal)
 
             Spacer()
 
@@ -56,9 +76,9 @@ struct AddCityView: View {
                             .padding()
                     } else {
                         List {
-                            if !filteredMatchedCities.isEmpty {
+                            if !cachedCities.isEmpty {
                                 Section(header: Text("Your City")) {
-                                    ForEach(filteredMatchedCities, id: \.self) { cityName in
+                                    ForEach(Array(cachedCities), id: \.self) { cityName in
                                         Button(action: {
                                             addCity(cityName)
                                         }) {
@@ -84,6 +104,7 @@ struct AddCityView: View {
         }
         .onAppear {
             matchedCities = dataStorage.loadCityNames()
+            cachedCities = dataStorage.loadCityNames()
         }
     }
 
@@ -97,7 +118,7 @@ struct AddCityView: View {
 
     private var filteredMatchedCities: [String] {
         if searchText.isEmpty {
-            return matchedCities
+            return Array(matchedCities)
         } else {
             return matchedCities.filter { $0.lowercased().contains(searchText.lowercased()) }
         }
@@ -119,8 +140,12 @@ struct AddCityView: View {
                     print("Received geo responses: \(geoResponses)")
                     if let firstGeoResponse = geoResponses.first {
                         if searchText.lowercased() == firstGeoResponse.name.lowercased() {
-                            matchedCities.append(firstGeoResponse.name)
-                            dataStorage.saveCityNames(matchedCities)
+                            matchedCities.insert(firstGeoResponse.name)
+                            self.cachedCities.insert(firstGeoResponse.name) // Ensure the new city is added to cachedCities
+                            self.dataStorage.saveCityNames(self.cachedCities) // Save cachedCities instead of matchedCities
+                            print("CachedCities: \(cachedCities)")
+                            refreshView()
+                            self.searchText = ""
                         } else {
                             errorMessage = "City not found. Please try again."
                         }
@@ -138,6 +163,7 @@ struct AddCityView: View {
     private func addCity(_ cityName: String) {
         isLoading = true
         weatherService.getCoordinates(for: cityName) { result in
+            self.searchText = ""
             switch result {
             case .success(let geoResponses):
                 if let geoResponse = geoResponses.first {
@@ -158,6 +184,8 @@ struct AddCityView: View {
                                     localTime: localTime
                                 )
                                 self.cities.append(newCity)
+                                self.dataStorage.saveCityNames(self.cachedCities)
+                                refreshView()
                                 self.presentationMode.wrappedValue.dismiss()
                             case .failure(let error):
                                 print("Error fetching weather data: \(error)")
@@ -182,6 +210,16 @@ struct AddCityView: View {
         }
     }
 
+    private func clearHistory() {
+        dataStorage.deleteAllCityNames()
+        cachedCities.removeAll()
+    }
+
+    private func refreshView() {
+        matchedCities = dataStorage.loadCityNames()
+        cachedCities = dataStorage.loadCityNames()
+    }
+
     private func formatLocalTime(timezoneOffset: Int) -> String {
         let date = Date()
         let dateFormatter = DateFormatter()
@@ -190,9 +228,3 @@ struct AddCityView: View {
         return dateFormatter.string(from: date)
     }
 }
-
-//struct AddCityView_Previews: PreviewProvider {
-//    static var previews: some View {
-//        AddCityView(cities: .constant([]))
-//    }
-//}
