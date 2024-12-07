@@ -80,7 +80,6 @@ struct AddCityView: View {
                                 Section(header: Text("Recent")) {
                                     ForEach(Array(cachedCities), id: \.self) { cityName in
                                         Button(action: {
-                                            searchCity(cityName: cityName)
                                             self.presentationMode.wrappedValue.dismiss()
                                         }) {
                                             Text(cityName)
@@ -143,15 +142,18 @@ struct AddCityView: View {
                     print("Received geo responses: \(geoResponses)")
                     if let firstGeoResponse = geoResponses.first {
                         if cityToSearch.lowercased() == firstGeoResponse.name.lowercased() {
-                            matchedCities.insert(firstGeoResponse.name)
-                            self.cachedCities.insert(firstGeoResponse.name)
-                            var cityCoordinates = self.dataStorage.loadCityCoordinates()
-                            cityCoordinates[firstGeoResponse.name] = (firstGeoResponse.lat, firstGeoResponse.lon)
-                            self.dataStorage.saveCityCoordinates(cityCoordinates)
-                            print("CachedCities: \(cachedCities)")
+                            if !self.cachedCities.contains(firstGeoResponse.name) {
+                                self.matchedCities.insert(firstGeoResponse.name)
+                                self.cachedCities.insert(firstGeoResponse.name)
+                                var cityCoordinates = self.dataStorage.loadCityCoordinates()
+                                cityCoordinates[firstGeoResponse.name] = (firstGeoResponse.lat, firstGeoResponse.lon)
+                                self.dataStorage.saveCityCoordinates(cityCoordinates)
+                                print("CachedCities: \(self.cachedCities)")
+                                self.onAddCity(firstGeoResponse.name, firstGeoResponse.lat, firstGeoResponse.lon)
+                            } else {
+                                print("City \(firstGeoResponse.name) is already in the cache.")
+                            }
                             self.searchText = ""
-                            self.onAddCity(firstGeoResponse.name, firstGeoResponse.lat, firstGeoResponse.lon)
-                            refreshView()
                         }
                     }
                 case .failure(let error):
