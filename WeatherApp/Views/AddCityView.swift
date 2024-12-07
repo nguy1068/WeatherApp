@@ -14,15 +14,16 @@ struct AddCityView: View {
     @State private var errorMessage: String? = nil
     @State private var matchedCities: [String] = []
     @Environment(\.presentationMode) var presentationMode
-    
+
     let weatherService = WeatherService()
-    
+    let dataStorage = DataStorage()
+
     var body: some View {
         VStack {
             Text("Add City")
                 .font(.headline)
                 .padding()
-            
+
             HStack {
                 Image(systemName: "magnifyingglass")
                     .foregroundColor(.gray)
@@ -38,39 +39,54 @@ struct AddCityView: View {
             .background(Color.gray.opacity(0.2))
             .cornerRadius(8)
             .padding(.horizontal)
-            
-            if isLoading {
-                ProgressView()
-            } else if let errorMessage = errorMessage {
-                Text(errorMessage)
-                    .foregroundColor(.red)
-                    .padding()
-            } else {
-                if !matchedCities.isEmpty {
-                    Section(header: Text("Your City")) {
-                        List(matchedCities, id: \.self) { cityName in
-                            Button(action: {
-                                addCity(cityName)
-                            }) {
-                                Text(cityName)
+
+            Spacer()
+
+            VStack {
+                Spacer()
+                if isLoading {
+                    ProgressView()
+                } else if let errorMessage = errorMessage {
+                    Text(errorMessage)
+                        .foregroundColor(.red)
+                        .padding()
+                } else {
+                    if filteredMatchedCities.isEmpty && filteredCities.isEmpty {
+                        Text("No result found, try to add new city")
+                            .padding()
+                    } else {
+                        List {
+                            if !filteredMatchedCities.isEmpty {
+                                Section(header: Text("Your City")) {
+                                    ForEach(filteredMatchedCities, id: \.self) { cityName in
+                                        Button(action: {
+                                            addCity(cityName)
+                                        }) {
+                                            Text(cityName)
+                                        }
+                                    }
+                                }
+                            }
+                            Section(header: Text("Suggestions")) {
+                                ForEach(filteredCities, id: \.self) { cityName in
+                                    Button(action: {
+                                        addCity(cityName)
+                                    }) {
+                                        Text(cityName)
+                                    }
+                                }
                             }
                         }
                     }
                 }
-                Section(header: Text("Suggestions")) {
-                    List(filteredCities, id: \.self) { cityName in
-                        Button(action: {
-                            addCity(cityName)
-                        }) {
-                            Text(cityName)
-                        }
-                    }
-                }
+                Spacer()
             }
         }
-        .padding()
+        .onAppear {
+            matchedCities = dataStorage.loadCityNames()
+        }
     }
-    
+
     private var filteredCities: [String] {
         if searchText.isEmpty {
             return default_city
@@ -78,15 +94,23 @@ struct AddCityView: View {
             return default_city.filter { $0.lowercased().contains(searchText.lowercased()) }
         }
     }
-    
+
+    private var filteredMatchedCities: [String] {
+        if searchText.isEmpty {
+            return matchedCities
+        } else {
+            return matchedCities.filter { $0.lowercased().contains(searchText.lowercased()) }
+        }
+    }
+
     private func searchCity() {
         guard !searchText.isEmpty else { return }
         isLoading = true
         errorMessage = nil
         matchedCities = []
-        
+
         print("Searching for city: \(searchText)")
-        
+
         weatherService.getCoordinates(for: searchText) { result in
             DispatchQueue.main.async {
                 isLoading = false
@@ -96,6 +120,7 @@ struct AddCityView: View {
                     if let firstGeoResponse = geoResponses.first {
                         if searchText.lowercased() == firstGeoResponse.name.lowercased() {
                             matchedCities.append(firstGeoResponse.name)
+                            dataStorage.saveCityNames(matchedCities)
                         } else {
                             errorMessage = "City not found. Please try again."
                         }
@@ -109,19 +134,21 @@ struct AddCityView: View {
             }
         }
     }
-    
+
     private func addCity(_ cityName: String) {
         isLoading = true
         weatherService.getCoordinates(for: cityName) { result in
             switch result {
             case .success(let geoResponses):
                 if let geoResponse = geoResponses.first {
-                    self.weatherService.getWeather(lat: geoResponse.lat, lon: geoResponse.lon) { result in
+                    self.weatherService.getWeather(lat: geoResponse.lat, lon: geoResponse.lon) {
+                        result in
                         DispatchQueue.main.async {
                             self.isLoading = false
                             switch result {
                             case .success(let weatherResponse):
-                                let localTime = formatLocalTime(timezoneOffset: weatherResponse.timezone)
+                                let localTime = formatLocalTime(
+                                    timezoneOffset: weatherResponse.timezone)
                                 let temperatureCelsius = weatherResponse.main.temp - 273.15
                                 let newCity = City(
                                     name: geoResponse.name,
@@ -134,7 +161,8 @@ struct AddCityView: View {
                                 self.presentationMode.wrappedValue.dismiss()
                             case .failure(let error):
                                 print("Error fetching weather data: \(error)")
-                                self.errorMessage = "Failed to fetch weather data. Please try again."
+                                self.errorMessage =
+                                    "Failed to fetch weather data. Please try again."
                             }
                         }
                     }
@@ -153,19 +181,18 @@ struct AddCityView: View {
             }
         }
     }
-    
+
     private func formatLocalTime(timezoneOffset: Int) -> String {
         let date = Date()
-        let localTime = date.addingTimeInterval(TimeInterval(timezoneOffset))
         let dateFormatter = DateFormatter()
         dateFormatter.timeStyle = .short
         dateFormatter.timeZone = TimeZone(secondsFromGMT: timezoneOffset)
-        return dateFormatter.string(from: localTime)
+        return dateFormatter.string(from: date)
     }
 }
 
-struct AddCityView_Previews: PreviewProvider {
-    static var previews: some View {
-        AddCityView(cities: .constant([]))
-    }
-}
+//struct AddCityView_Previews: PreviewProvider {
+//    static var previews: some View {
+//        AddCityView(cities: .constant([]))
+//    }
+//}
