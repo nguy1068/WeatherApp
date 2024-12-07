@@ -12,6 +12,7 @@ struct AddCityView: View {
     @State private var searchText: String = ""
     @State private var isLoading: Bool = false
     @State private var errorMessage: String? = nil
+    @State private var matchedCities: [String] = []
     @Environment(\.presentationMode) var presentationMode
     
     let weatherService = WeatherService()
@@ -20,44 +21,54 @@ struct AddCityView: View {
         VStack {
             Text("Add City")
                 .font(.headline)
-                .padding(.top, 20)
+                .padding()
             
             HStack {
                 Image(systemName: "magnifyingglass")
                     .foregroundColor(.gray)
                 TextField("Search for a city", text: $searchText)
                     .textFieldStyle(PlainTextFieldStyle())
-                    .padding(.vertical, 0)
-                    .frame(height: 40)
                 Button(action: {
                     searchCity()
                 }) {
                     Text("Add")
-                        .fontWeight(.semibold)
-                        .padding(.horizontal)
-                        .frame(height: 36)
                 }
             }
-            .padding(.horizontal,10)
-            .background(Color(.systemGray6))
-            .cornerRadius(8)
             .padding()
-
+            .background(Color.gray.opacity(0.2))
+            .cornerRadius(8)
+            .padding(.horizontal)
+            
             if isLoading {
                 ProgressView()
             } else if let errorMessage = errorMessage {
                 Text(errorMessage)
                     .foregroundColor(.red)
+                    .padding()
             } else {
-                List(filteredCities, id: \.self) { cityName in
-                    Button(action: {
-                        addCity(cityName)
-                    }) {
-                        Text(cityName)
+                if !matchedCities.isEmpty {
+                    Section(header: Text("Your City")) {
+                        List(matchedCities, id: \.self) { cityName in
+                            Button(action: {
+                                addCity(cityName)
+                            }) {
+                                Text(cityName)
+                            }
+                        }
+                    }
+                }
+                Section(header: Text("Suggestions")) {
+                    List(filteredCities, id: \.self) { cityName in
+                        Button(action: {
+                            addCity(cityName)
+                        }) {
+                            Text(cityName)
+                        }
                     }
                 }
             }
         }
+        .padding()
     }
     
     private var filteredCities: [String] {
@@ -72,6 +83,7 @@ struct AddCityView: View {
         guard !searchText.isEmpty else { return }
         isLoading = true
         errorMessage = nil
+        matchedCities = []
         
         print("Searching for city: \(searchText)")
         
@@ -82,11 +94,17 @@ struct AddCityView: View {
                 case .success(let geoResponses):
                     print("Received geo responses: \(geoResponses)")
                     if let firstGeoResponse = geoResponses.first {
-                        addCity(firstGeoResponse.name)
+                        if searchText.lowercased() == firstGeoResponse.name.lowercased() {
+                            matchedCities.append(firstGeoResponse.name)
+                        } else {
+                            errorMessage = "City not found. Please try again."
+                        }
+                    } else {
+                        errorMessage = "City not found. Please try again."
                     }
                 case .failure(let error):
                     print("Error fetching geo responses: \(error)")
-                    errorMessage = error.localizedDescription
+                    errorMessage = "City not found. Please try again."
                 }
             }
         }
@@ -116,16 +134,21 @@ struct AddCityView: View {
                                 self.presentationMode.wrappedValue.dismiss()
                             case .failure(let error):
                                 print("Error fetching weather data: \(error)")
-                                self.errorMessage = error.localizedDescription
+                                self.errorMessage = "Failed to fetch weather data. Please try again."
                             }
                         }
+                    }
+                } else {
+                    DispatchQueue.main.async {
+                        self.isLoading = false
+                        self.errorMessage = "City not found. Please try again."
                     }
                 }
             case .failure(let error):
                 DispatchQueue.main.async {
                     self.isLoading = false
                     print("Error fetching geo responses: \(error)")
-                    self.errorMessage = error.localizedDescription
+                    self.errorMessage = "City not found. Please try again."
                 }
             }
         }
@@ -133,10 +156,11 @@ struct AddCityView: View {
     
     private func formatLocalTime(timezoneOffset: Int) -> String {
         let date = Date()
+        let localTime = date.addingTimeInterval(TimeInterval(timezoneOffset))
         let dateFormatter = DateFormatter()
         dateFormatter.timeStyle = .short
         dateFormatter.timeZone = TimeZone(secondsFromGMT: timezoneOffset)
-        return dateFormatter.string(from: date)
+        return dateFormatter.string(from: localTime)
     }
 }
 

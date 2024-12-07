@@ -76,8 +76,11 @@ struct WeatherService {
     }
 
     // Function to get coordinates by city name
-    func getCoordinates(for city: String, completion: @escaping (Result<[GeoResponse], Error>) -> Void) {
-        let urlString = "https://api.openweathermap.org/geo/1.0/direct?q=\(city)&limit=100&appid=\(apiKey)"
+    func getCoordinates(
+        for city: String, completion: @escaping (Result<[GeoResponse], Error>) -> Void
+    ) {
+        let urlString =
+            "https://api.openweathermap.org/geo/1.0/direct?q=\(city)&limit=1&appid=\(apiKey)"
         guard let url = URL(string: urlString) else {
             completion(.failure(NSError(domain: "Invalid URL", code: 0, userInfo: nil)))
             return
@@ -133,8 +136,11 @@ struct WeatherService {
     }
 
     // Function to get weather data by coordinates
-    func getWeather(lat: Double, lon: Double, completion: @escaping (Result<WeatherResponse, Error>) -> Void) {
-        let urlString = "https://api.openweathermap.org/data/2.5/weather?lat=\(lat)&lon=\(lon)&appid=\(apiKey)"
+    func getWeather(
+        lat: Double, lon: Double, completion: @escaping (Result<WeatherResponse, Error>) -> Void
+    ) {
+        let urlString =
+            "https://api.openweathermap.org/data/2.5/weather?lat=\(lat)&lon=\(lon)&appid=\(apiKey)"
         guard let url = URL(string: urlString) else {
             completion(.failure(NSError(domain: "Invalid URL", code: 0, userInfo: nil)))
             return
@@ -163,7 +169,8 @@ struct WeatherService {
                 do {
                     let errorResponse = try JSONDecoder().decode(ErrorResponse.self, from: data)
                     print("ErrorResponse: \(errorResponse)")
-                    completion(.failure(NSError(domain: errorResponse.message, code: 0, userInfo: nil)))
+                    completion(
+                        .failure(NSError(domain: errorResponse.message, code: 0, userInfo: nil)))
                 } catch {
                     print("Error decoding WeatherResponse: \(error)")
                     completion(.failure(error))
