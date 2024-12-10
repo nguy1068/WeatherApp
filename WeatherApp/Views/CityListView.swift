@@ -72,7 +72,9 @@ struct CityListView: View {
                 Color.white.ignoresSafeArea()
                 List {
                     ForEach(filteredCities) { city in
-                        CityRow(city: city, isEditing: isEditing)
+                        NavigationLink(destination: CityDetailView(city: city)) {
+                            CityRow(city: city, isEditing: isEditing)
+                        }
                     }
                     .onDelete(perform: deleteCity)
                     .onMove(perform: moveCity)
@@ -163,13 +165,27 @@ struct CityListView: View {
                     print("Weather Response: \(weatherResponse)")
                     let localTime = formatLocalTime(timezoneOffset: weatherResponse.city.timezone)
                     let temperatureCelsius = weatherResponse.list.first?.main.temp ?? 0 - 273.15
+                    let cityInfo = City.CityInfo(
+                        id: weatherResponse.city.id,
+                        name: weatherResponse.city.name,
+                        coord: City.CityInfo.Coord(
+                            lat: weatherResponse.city.coord.lat,
+                            lon: weatherResponse.city.coord.lon
+                        ),
+                        country: weatherResponse.city.country,
+                        population: weatherResponse.city.population,
+                        timezone: weatherResponse.city.timezone,
+                        sunrise: weatherResponse.city.sunrise,
+                        sunset: weatherResponse.city.sunset
+                    )
                     let newCity = City(
                         name: cityName,
                         temperature: String(format: "%.1f°C", temperatureCelsius),
                         weather: weatherResponse.list.first?.weather.first?.description ?? "N/A",
                         icon: weatherResponse.list.first?.weather.first?.icon ?? "cloud.fill",
                         localTime: localTime,
-                        forecast: weatherResponse.list
+                        forecast: weatherResponse.list,
+                        cityInfo: cityInfo
                     )
                     self.cities.append(newCity)
                     self.saveCitiesToCache()
@@ -186,16 +202,6 @@ struct CityListView: View {
         dateFormatter.timeStyle = .short
         dateFormatter.timeZone = TimeZone(secondsFromGMT: timezoneOffset)
         return dateFormatter.string(from: date)
-    }
-
-    // Function to remove a city
-    private func removeCity(at offsets: IndexSet) {
-        for index in offsets {
-            let city = cities[index]
-            dataStorage.removeCityName(city.name)
-            dataStorage.removeCityCoordinates(city.name)
-            cities.remove(at: index)
-        }
     }
 }
 

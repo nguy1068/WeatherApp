@@ -15,6 +15,23 @@ struct City: Identifiable {
     let icon: String
     let localTime: String
     let forecast: [WeatherForecast]
+    let cityInfo: CityInfo
+
+    struct CityInfo: Codable {
+        let id: Int
+        let name: String
+        let coord: Coord
+        let country: String
+        let population: Int
+        let timezone: Int
+        let sunrise: Int
+        let sunset: Int
+
+        struct Coord: Codable {
+            let lat: Double
+            let lon: Double
+        }
+    }
 }
 
 struct WeatherForecast: Identifiable, Codable {
