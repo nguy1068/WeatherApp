@@ -38,7 +38,7 @@ struct CityRow: View {
                             .frame(width: 80, height: 80)
                             .clipped()
 
-                        Text("\(city.weather ?? "No weather data")")
+                        Text("\(city.weather)")
                             .multilineTextAlignment(.trailing)
                     }
                 }
@@ -47,12 +47,12 @@ struct CityRow: View {
     }
 
     // Function to determine the image name
-    private func imageName(for weather: String?) -> String {
+    private func imageName(for weather: String) -> String {
         let validWeatherNames = [
             "broken clouds", "clear sky", "few clouds", "haze", "light shower snow",
-            "overcast clouds", "  smoke", "sunny",
+            "overcast clouds", "smoke", "sunny",
         ]
-        return validWeatherNames.contains(weather ?? "") ? weather! : "default"
+        return validWeatherNames.contains(weather) ? weather : "default"
     }
 }
 
@@ -97,7 +97,7 @@ struct CityListView: View {
                 )
                 .sheet(isPresented: $showingAddCityView) {
                     AddCityView { cityName, lat, lon in
-                        addCity(cityName: cityName, lat: lat, lon: lon)
+                        getCityData(cityName: cityName, lat: lat, lon: lon)
                     }
                 }
                 .environment(
@@ -145,7 +145,7 @@ struct CityListView: View {
     private func loadCitiesFromCache() {
         let cityCoordinates = dataStorage.loadCityCoordinates()
         for (cityName, coordinates) in cityCoordinates {
-            addCity(cityName: cityName, lat: coordinates.0, lon: coordinates.1)
+            getCityData(cityName: cityName, lat: coordinates.0, lon: coordinates.1)
         }
     }
 
@@ -154,21 +154,22 @@ struct CityListView: View {
         return cityCoordinates[cityName]
     }
 
-    private func addCity(cityName: String, lat: Double, lon: Double) {
+    private func getCityData(cityName: String, lat: Double, lon: Double) {
         weatherService.getWeather(lat: lat, lon: lon) { result in
             DispatchQueue.main.async {
                 switch result {
                 case .success(let weatherResponse):
                     print("Successfully fetched weather data for city: \(cityName)")
                     print("Weather Response: \(weatherResponse)")
-                    let localTime = formatLocalTime(timezoneOffset: weatherResponse.timezone)
-                    let temperatureCelsius = weatherResponse.main.temp - 273.15
+                    let localTime = formatLocalTime(timezoneOffset: weatherResponse.city.timezone)
+                    let temperatureCelsius = weatherResponse.list.first?.main.temp ?? 0 - 273.15
                     let newCity = City(
                         name: cityName,
                         temperature: String(format: "%.1f°C", temperatureCelsius),
-                        weather: weatherResponse.weather.first?.description ?? "N/A",
-                        icon: weatherResponse.weather.first?.icon ?? "cloud.fill",
-                        localTime: localTime
+                        weather: weatherResponse.list.first?.weather.first?.description ?? "N/A",
+                        icon: weatherResponse.list.first?.weather.first?.icon ?? "cloud.fill",
+                        localTime: localTime,
+                        forecast: weatherResponse.list
                     )
                     self.cities.append(newCity)
                     self.saveCitiesToCache()

@@ -12,4 +12,5 @@ struct Weather: Codable {
     let uvIndex: Double
     let icon: String
     let description: String
+    let forecast: [String]?
 }

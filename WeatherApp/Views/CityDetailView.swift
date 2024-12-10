@@ -12,7 +12,9 @@
 //TODO: Display detailed weather conditions:
 
 
+
 //TODO: Show temperature, UV index, wind speed, humidity, and forecast.
+
 
 
 //TODO: Implement a map view in the background using MapKit.
