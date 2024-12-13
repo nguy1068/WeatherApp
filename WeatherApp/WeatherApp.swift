@@ -11,7 +11,20 @@ import SwiftUI
 struct WeatherAppApp: App {
     var body: some Scene {
         WindowGroup {
-            CityListView()
+            TabView {
+                CityListView()
+                    .tabItem {
+                        Label("Cities", systemImage: "house")
+                    }
+                AboutView()
+                    .tabItem {
+                        Label("About", systemImage: "info.circle")
+                    }
+                SettingsView()
+                    .tabItem {
+                        Label("Settings", systemImage: "gear")
+                    }
+            }
         }
     }
 }

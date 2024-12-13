@@ -72,7 +72,8 @@ struct CityListView: View {
                 Color.white.ignoresSafeArea()
                 List {
                     ForEach(filteredCities) { city in
-                        NavigationLink(destination: CityDetailView(city: city)) {
+                        NavigationLink(destination: CityDetailView(city: city)
+                        ) {
                             CityRow(city: city, isEditing: isEditing)
                         }
                     }
@@ -203,11 +204,5 @@ struct CityListView: View {
         dateFormatter.timeStyle = .short
         dateFormatter.timeZone = TimeZone(secondsFromGMT: timezoneOffset)
         return dateFormatter.string(from: date)
-    }
-}
-
-struct CityListView_Previews: PreviewProvider {
-    static var previews: some View {
-        CityListView()
     }
 }

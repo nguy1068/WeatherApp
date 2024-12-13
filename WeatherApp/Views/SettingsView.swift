@@ -12,15 +12,14 @@ struct SettingsView: View {
         Text("Settings View")
             .font(.largeTitle)
             .padding()
+           
     }
 }
 
-//TODO:  Implement settings options:
+// TODO: Implement settings options:
 
-//TODO:  Use Picker to allow users to set the refresh interval.
+// TODO: Use Picker to allow users to set the refresh interval.
 
+// TODO: Add a button to navigate to the About screen.
 
-//TODO: Add a button to navigate to the About screen.
-
-
-//TODO: Use @AppStorage to persist user settings.
+// TODO: Use @AppStorage to persist user settings.
