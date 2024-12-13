@@ -10,3 +10,4 @@ enum AppTheme {
     static let primaryColor = Color.blue
     //TODO: define app theme and color
 }
+
