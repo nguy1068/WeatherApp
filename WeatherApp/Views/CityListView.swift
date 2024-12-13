@@ -30,7 +30,7 @@ struct CityRow: View {
             Spacer()
             if !isEditing {
                 HStack {
-                    Spacer()  // This will push the content to the right
+                    Spacer() // This will push the content to the right
                     VStack(alignment: .trailing) {
                         Image(imageName(for: city.weather))
                             .resizable()
@@ -107,7 +107,8 @@ struct CityListView: View {
                     Binding(
                         get: { isEditing ? .active : .inactive },
                         set: { isEditing = $0 == .active }
-                    ))
+                    )
+                )
             }
         }
         .onAppear {

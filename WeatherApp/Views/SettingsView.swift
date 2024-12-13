@@ -5,6 +5,15 @@
 //  Created by Dat Nguyen(Mike) on 2024-12-04.
 //
 
+import SwiftUI
+
+struct SettingsView: View {
+    var body: some View {
+        Text("Settings View")
+            .font(.largeTitle)
+            .padding()
+    }
+}
 
 //TODO:  Implement settings options:
 

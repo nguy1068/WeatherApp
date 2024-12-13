@@ -5,6 +5,16 @@
 //  Created by Dat Nguyen(Mike) on 2024-12-04.
 //
 
+import SwiftUI
+struct AboutView: View {
+    var body: some View {
+        Text("About View")
+            .font(.largeTitle)
+            .padding()
+    }
+}
+
+
 //TODO: Display information about the app and author:
 
 

@@ -52,11 +52,13 @@ struct CityDetailView: View {
                     }
 
                     // Forecast Section
-                    HStack(spacing: 32) {
-                        ForEach(getForecast(for: city, currentLocalTime: currentLocalTime)) {
-                            forecast in
-                            displayForecast(forecast: forecast)
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack(spacing: 32) {
+                            ForEach(getForecast(for: city, currentLocalTime: currentLocalTime)) { forecast in
+                                displayForecast(forecast: forecast)
+                            }
                         }
+                        .padding(.horizontal) // Add horizontal padding to the HStack
                     }
                 }
                 .padding()
@@ -119,9 +121,10 @@ struct CityDetailView: View {
 
     // Function to display each forecast
     private func displayForecast(forecast: WeatherForecast) -> some View {
-        let localTime = convertUTCToLocal(
-            utcDateString: forecast.dt_txt,
-            timezoneOffset: TimeInterval(city.cityInfo.timezone)) ?? "N/A"
+        let localTime =
+            convertUTCToLocal(
+                utcDateString: forecast.dt_txt,
+                timezoneOffset: TimeInterval(city.cityInfo.timezone)) ?? "N/A"
 
         var iconUrl = ""
         if let weather = forecast.weather.first {
