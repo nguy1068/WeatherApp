@@ -9,6 +9,8 @@ import Foundation
 
 struct WeatherService {
     private let apiKey = "82cee47fde2a603c5aad6b9ea8cb8f11"
+    private let refetchInterval: TimeInterval = 15 // 1 hour in seconds
+    private let dataStorage = DataStorage()
 
     struct GeoResponse: Codable {
         let name: String
@@ -115,6 +117,47 @@ struct WeatherService {
                 }
             }
         }.resume()
+    }
+
+    func autoRefetchWeatherData(for city: String, completion: @escaping (Result<WeatherResponse, Error>) -> Void) {
+        let lastFetchTimeKey = "\(city)_lastFetchTime"
+        let currentTime = Date().timeIntervalSince1970
+        let lastFetchTime = UserDefaults.standard.double(forKey: lastFetchTimeKey)
+
+        print("Checking if data needs to be refetched for city: \(city)")
+        print("Current time: \(currentTime), Last fetch time: \(lastFetchTime)")
+
+        if currentTime - lastFetchTime > refetchInterval {
+            print("Refetching data for city: \(city)")
+            getCoordinates(for: city) { result in
+                switch result {
+                case .success(let geoResponses):
+                    guard let geoResponse = geoResponses.first else {
+                        completion(.failure(NSError(domain: "No coordinates found", code: 0, userInfo: nil)))
+                        return
+                    }
+                    self.getWeather(lat: geoResponse.lat, lon: geoResponse.lon) { weatherResult in
+                        switch weatherResult {
+                        case .success(let weatherResponse):
+                            // Save the new data to cache
+                            self.dataStorage.saveCityCoordinates([city: (geoResponse.lat, geoResponse.lon)])
+                            UserDefaults.standard.set(currentTime, forKey: lastFetchTimeKey)
+                            print("Successfully refetched and cached data for city: \(city)")
+                            completion(.success(weatherResponse))
+                        case .failure(let error):
+                            print("Failed to fetch weather data for city: \(city), error: \(error)")
+                            completion(.failure(error))
+                        }
+                    }
+                case .failure(let error):
+                    print("Failed to fetch coordinates for city: \(city), error: \(error)")
+                    completion(.failure(error))
+                }
+            }
+        } else {
+            print("Data is up-to-date for city: \(city), no need to refetch.")
+            completion(.failure(NSError(domain: "Data is up-to-date", code: 0, userInfo: nil)))
+        }
     }
 
     struct ErrorResponse: Codable {

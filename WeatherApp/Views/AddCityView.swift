@@ -141,20 +141,20 @@ struct AddCityView: View {
                 case .success(let geoResponses):
                     print("Received geo responses: \(geoResponses)")
                     if let firstGeoResponse = geoResponses.first {
-                        if cityToSearch.lowercased() == firstGeoResponse.name.lowercased() {
-                            if !self.cachedCities.contains(firstGeoResponse.name) {
-                                self.matchedCities.insert(firstGeoResponse.name)
-                                self.cachedCities.insert(firstGeoResponse.name)
-                                var cityCoordinates = self.dataStorage.loadCityCoordinates()
-                                cityCoordinates[firstGeoResponse.name] = (firstGeoResponse.lat, firstGeoResponse.lon)
-                                self.dataStorage.saveCityCoordinates(cityCoordinates)
-                                print("CachedCities: \(self.cachedCities)")
-                                self.onAddCity(firstGeoResponse.name, firstGeoResponse.lat, firstGeoResponse.lon)
-                            } else {
-                                print("City \(firstGeoResponse.name) is already in the cache.")
-                            }
-                            self.searchText = ""
+                        let storedCityName = cityToSearch
+
+                        if !self.cachedCities.contains(storedCityName) {
+                            self.matchedCities.insert(storedCityName)
+                            self.cachedCities.insert(storedCityName)
+                            var cityCoordinates = self.dataStorage.loadCityCoordinates()
+                            cityCoordinates[storedCityName] = (firstGeoResponse.lat, firstGeoResponse.lon)
+                            self.dataStorage.saveCityCoordinates(cityCoordinates)
+                            print("CachedCities: \(self.cachedCities)")
+                            self.onAddCity(storedCityName, firstGeoResponse.lat, firstGeoResponse.lon)
+                        } else {
+                            print("City \(storedCityName) is already in the cache.")
                         }
+                        self.searchText = ""
                     }
                 case .failure(let error):
                     print("Failed to fetch coordinates for city: \(cityToSearch), error: \(error)")

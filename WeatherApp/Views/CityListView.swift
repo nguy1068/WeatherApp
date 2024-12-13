@@ -62,6 +62,7 @@ struct CityListView: View {
     @State private var searchText: String = ""
     @State private var showingAddCityView: Bool = false
     @State private var isEditing: Bool = false
+    @State private var timer: Timer?
 
     let dataStorage = DataStorage()
     let weatherService = WeatherService()
@@ -72,8 +73,7 @@ struct CityListView: View {
                 Color.white.ignoresSafeArea()
                 List {
                     ForEach(filteredCities) { city in
-                        NavigationLink(destination: CityDetailView(city: city)
-                        ) {
+                        NavigationLink(destination: CityDetailView(city: city)) {
                             CityRow(city: city, isEditing: isEditing)
                         }
                     }
@@ -114,6 +114,10 @@ struct CityListView: View {
         }
         .onAppear {
             loadCitiesFromCache()
+            startRefetchTimer()
+        }
+        .onDisappear {
+            stopRefetchTimer()
         }
     }
 
@@ -148,6 +152,7 @@ struct CityListView: View {
 
     private func loadCitiesFromCache() {
         let cityCoordinates = dataStorage.loadCityCoordinates()
+        print("Loaded city coordinates from cache: \(cityCoordinates)")
         for (cityName, coordinates) in cityCoordinates {
             getCityData(cityName: cityName, lat: coordinates.0, lon: coordinates.1)
         }
@@ -164,7 +169,6 @@ struct CityListView: View {
                 switch result {
                 case .success(let weatherResponse):
                     print("Successfully fetched weather data for city: \(cityName)")
-                    print("Weather Response: \(weatherResponse)")
                     let localTime = formatLocalTime(timezoneOffset: weatherResponse.city.timezone)
                     let temperatureCelsius = weatherResponse.list.first?.main.temp ?? 0 - 273.15
                     let cityInfo = City.CityInfo(
@@ -204,5 +208,30 @@ struct CityListView: View {
         dateFormatter.timeStyle = .short
         dateFormatter.timeZone = TimeZone(secondsFromGMT: timezoneOffset)
         return dateFormatter.string(from: date)
+    }
+
+    private func startRefetchTimer() {
+        timer = Timer.scheduledTimer(withTimeInterval: 15, repeats: true) { _ in
+            refetchWeatherDataForAllCities()
+        }
+    }
+
+    private func stopRefetchTimer() {
+        timer?.invalidate()
+        timer = nil
+    }
+
+    private func refetchWeatherDataForAllCities() {
+        for city in cities {
+            weatherService.autoRefetchWeatherData(for: city.name) { result in
+                switch result {
+                case .success(let weatherResponse):
+                    print("Refetched weather data for city: \(city.name)")
+                    // Update the city data if needed
+                case .failure(let error):
+                    print("Failed to refetch weather data for city: \(city.name), error: \(error)")
+                }
+            }
+        }
     }
 }
