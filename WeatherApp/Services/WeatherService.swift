@@ -9,7 +9,9 @@ import Foundation
 
 struct WeatherService {
     private let apiKey = "82cee47fde2a603c5aad6b9ea8cb8f11"
-    private let refetchInterval: TimeInterval = 15 // 1 hour in seconds
+    private var refetchInterval: TimeInterval {
+        return TimeInterval(UserDefaults.standard.integer(forKey: "refreshInterval") * 60)
+    }
     private let dataStorage = DataStorage()
 
     struct GeoResponse: Codable {
@@ -54,7 +56,7 @@ struct WeatherService {
             return
         }
 
-        print("Fetching coordinates for URL: \(urlString)")
+//        print("Fetching coordinates for URL: \(urlString)")
 
         URLSession.shared.dataTask(with: url) { data, _, error in
             if let error = error {
@@ -69,7 +71,7 @@ struct WeatherService {
 
             do {
                 let geoResponse = try JSONDecoder().decode([GeoResponse].self, from: data)
-                print("GeoResponse: \(geoResponse)")
+//                print("GeoResponse: \(geoResponse)")
                 completion(.success(geoResponse))
             } catch {
                 print("Error decoding GeoResponse: \(error)")
@@ -88,7 +90,7 @@ struct WeatherService {
             return
         }
 
-        print("Fetching weather for URL: \(urlString)")
+//        print("Fetching weather for URL: \(urlString)")
 
         URLSession.shared.dataTask(with: url) { data, _, error in
             if let error = error {
@@ -103,7 +105,8 @@ struct WeatherService {
 
             do {
                 let weatherResponse = try JSONDecoder().decode(WeatherResponse.self, from: data)
-                print("WeatherResponse: \(weatherResponse)")
+                print("WeatherResponse: fetch sucess)")
+//                print("WeatherResponse: \(weatherResponse)")
                 completion(.success(weatherResponse))
             } catch {
                 do {

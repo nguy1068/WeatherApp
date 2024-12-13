@@ -14,11 +14,13 @@ class DataStorage {
     // Function to save a set of city names
     func saveCityNames(_ cityNames: Set<String>) {
         UserDefaults.standard.set(Array(cityNames), forKey: cityNamesKey)
+        print("Saved city names: \(cityNames)")
     }
 
     // Function to load the set of city names
     func loadCityNames() -> Set<String> {
         let cityNamesArray = UserDefaults.standard.stringArray(forKey: cityNamesKey) ?? []
+        print("Loaded city names: \(cityNamesArray)")
         return Set(cityNamesArray)
     }
 
@@ -31,15 +33,19 @@ class DataStorage {
     func saveCityCoordinates(_ cityCoordinates: [String: (Double, Double)]) {
         let encodedData = try? JSONEncoder().encode(cityCoordinates.mapValues { ["lat": $0.0, "lon": $0.1] })
         UserDefaults.standard.set(encodedData, forKey: cityCoordinatesKey)
+        print("Saved city coordinates: \(cityCoordinates)")
     }
 
     // Function to load the dictionary of city names and their coordinates
     func loadCityCoordinates() -> [String: (Double, Double)] {
         guard let data = UserDefaults.standard.data(forKey: cityCoordinatesKey),
               let decodedData = try? JSONDecoder().decode([String: [String: Double]].self, from: data) else {
+            print("Loaded city coordinates: []")
             return [:]
         }
-        return decodedData.mapValues { ($0["lat"]!, $0["lon"]!) }
+        let coordinates = decodedData.mapValues { ($0["lat"]!, $0["lon"]!) }
+        print("Loaded city coordinates: \(coordinates)")
+        return coordinates
     }
 
     // Function to delete all city coordinates

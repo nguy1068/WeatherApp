@@ -113,7 +113,9 @@ struct CityListView: View {
             }
         }
         .onAppear {
-            loadCitiesFromCache()
+            if cities.isEmpty {
+                loadCitiesFromCache()
+            }
             startRefetchTimer()
         }
         .onDisappear {
@@ -153,8 +155,12 @@ struct CityListView: View {
     private func loadCitiesFromCache() {
         let cityCoordinates = dataStorage.loadCityCoordinates()
         print("Loaded city coordinates from cache: \(cityCoordinates)")
+        var uniqueCities = Set<String>()
         for (cityName, coordinates) in cityCoordinates {
-            getCityData(cityName: cityName, lat: coordinates.0, lon: coordinates.1)
+            if !uniqueCities.contains(cityName) {
+                uniqueCities.insert(cityName)
+                getCityData(cityName: cityName, lat: coordinates.0, lon: coordinates.1)
+            }
         }
     }
 
@@ -193,8 +199,10 @@ struct CityListView: View {
                         forecast: weatherResponse.list,
                         cityInfo: cityInfo
                     )
-                    self.cities.append(newCity)
-                    self.saveCitiesToCache()
+                    if !self.cities.contains(where: { $0.name == newCity.name }) {
+                        self.cities.append(newCity)
+                        self.saveCitiesToCache()
+                    }
                 case .failure(let error):
                     print("Error fetching weather data: \(error)")
                 }
@@ -224,12 +232,29 @@ struct CityListView: View {
     private func refetchWeatherDataForAllCities() {
         for city in cities {
             weatherService.autoRefetchWeatherData(for: city.name) { result in
-                switch result {
-                case .success(let weatherResponse):
-                    print("Refetched weather data for city: \(city.name)")
-                    // Update the city data if needed
-                case .failure(let error):
-                    print("Failed to refetch weather data for city: \(city.name), error: \(error)")
+                DispatchQueue.main.async {
+                    switch result {
+                    case .success(let weatherResponse):
+                        print("Refetched weather data for city: \(city.name)")
+                        
+                        // Find the index of the city to update
+                        if let index = self.cities.firstIndex(where: { $0.name == city.name }) {
+                            // Update the city with new weather data
+                            let updatedCity = City(
+                                name: city.name,
+                                temperature: String(format: "%.1f°C", weatherResponse.list.first?.main.temp ?? 0 - 273.15),
+                                weather: weatherResponse.list.first?.weather.first?.description ?? "N/A",
+                                icon: weatherResponse.list.first?.weather.first?.icon ?? "cloud.fill",
+                                localTime: self.formatLocalTime(timezoneOffset: weatherResponse.city.timezone),
+                                forecast: weatherResponse.list,
+                                cityInfo: city.cityInfo
+                            )
+                            self.cities[index] = updatedCity
+                        }
+                        
+                    case .failure(let error):
+                        print("Failed to refetch weather data for city: \(city.name), error: \(error)")
+                    }
                 }
             }
         }

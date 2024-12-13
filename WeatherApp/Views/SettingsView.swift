@@ -9,7 +9,7 @@ import SwiftUI
 
 struct SettingsView: View {
     @AppStorage("refreshInterval") private var refreshInterval: Int = 15 // Default to 15 minutes
-    let intervals = [1, 5, 10, 15, 30, 60] // Available intervals in minutes
+    let intervals = [1, 2, 5, 10, 15, 30, 60] // Available intervals in minutes
 
     var body: some View {
         VStack {
