@@ -7,7 +7,6 @@
 
 import SwiftUI
 
-// Define a CityRow view to display city details
 struct CityRow: View {
     let city: City
     let isEditing: Bool
@@ -21,12 +20,17 @@ struct CityRow: View {
                     .truncationMode(.tail)
                     .frame(maxWidth: 200, alignment: .leading)
 
-                Text(city.temperature)
-                    .font(.system(size: 32))
+                if let currentForecast = city.forecast.first {
+                    Text("\(currentForecast.main.temperatureCelsius, specifier: "%.1f")°C")
+                        .font(.system(size: 32))
+                }
+                
                 Text("Local Time: \(city.localTime)")
                     .font(.system(size: 16))
                     .foregroundColor(Color.gray)
+                
             }
+            
             Spacer()
             if !isEditing {
                 HStack {
@@ -176,7 +180,7 @@ struct CityListView: View {
                 case .success(let weatherResponse):
                     print("Successfully fetched weather data for city: \(cityName)")
                     let localTime = formatLocalTime(timezoneOffset: weatherResponse.city.timezone)
-                    let temperatureCelsius = weatherResponse.list.first?.main.temp ?? 0 - 273.15
+                    let temperatureCelsius = weatherResponse.temperatureCelsius ?? 0.0
                     let cityInfo = City.CityInfo(
                         id: weatherResponse.city.id,
                         name: weatherResponse.city.name,
@@ -239,10 +243,10 @@ struct CityListView: View {
                         
                         // Find the index of the city to update
                         if let index = self.cities.firstIndex(where: { $0.name == city.name }) {
-                            // Update the city with new weather data
+                            // Update the city with new weather data using the computed property
                             let updatedCity = City(
                                 name: city.name,
-                                temperature: String(format: "%.1f°C", weatherResponse.list.first?.main.temp ?? 0 - 273.15),
+                                temperature: String(format: "%.1f°C", weatherResponse.temperatureCelsius ?? 0.0),
                                 weather: weatherResponse.list.first?.weather.first?.description ?? "N/A",
                                 icon: weatherResponse.list.first?.weather.first?.icon ?? "cloud.fill",
                                 localTime: self.formatLocalTime(timezoneOffset: weatherResponse.city.timezone),

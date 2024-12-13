@@ -58,7 +58,7 @@ struct CityDetailView: View {
                                 displayForecast(forecast: forecast)
                             }
                         }
-                        .padding(.horizontal) // Add horizontal padding to the HStack
+                        .padding(.horizontal)
                     }
                 }
                 .padding()
@@ -90,6 +90,8 @@ struct CityDetailView: View {
     // Function to display current forecast section
     private func displayCurrentForecast(currentLocalTime: String) -> some View {
         if let currentForecast = getCurrentForecast(for: city, currentLocalTime: currentLocalTime) {
+            print("\(currentForecast.main.temperatureCelsius)")
+
             return AnyView(
                 HStack(spacing: 32) {
                     VStack {
@@ -97,7 +99,7 @@ struct CityDetailView: View {
                             .resizable()
                             .aspectRatio(contentMode: .fill)
                             .frame(width: 32, height: 32)
-                        Text("\(currentForecast.main.temp - 273.15, specifier: "%.1f")°C")
+                        Text("\(currentForecast.main.temperatureCelsius, specifier: "%.1f")°C")
                     }
                     VStack {
                         Image("wind")
@@ -143,7 +145,7 @@ struct CityDetailView: View {
                 ProgressView()
             }
             Text("\(localTime)")
-            Text("\(forecast.main.temp - 273.15, specifier: "%.1f")°C")
+            Text("\(forecast.main.temperatureCelsius, specifier: "%.1f")°C")
         }
         .padding(.vertical, 5)
     }
@@ -195,7 +197,7 @@ private func convertUTCToLocal(utcDateString: String, timezoneOffset: TimeInterv
     }
 
     let localDate = utcDate.addingTimeInterval(timezoneOffset)
-    dateFormatter.dateFormat = "HH:mm" // Change here
+    dateFormatter.dateFormat = "HH:mm" 
     dateFormatter.timeZone = TimeZone.current
     return dateFormatter.string(from: localDate)
 }

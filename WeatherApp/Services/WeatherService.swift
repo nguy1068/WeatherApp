@@ -44,6 +44,11 @@ struct WeatherService {
                 let lon: Double
             }
         }
+
+        var temperatureCelsius: Double? {
+            guard let kelvinTemp = list.first?.main.temp else { return nil }
+            return kelvinTemp - 273.15
+        }
     }
 
     func getCoordinates(

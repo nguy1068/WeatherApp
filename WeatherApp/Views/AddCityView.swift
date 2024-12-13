@@ -130,30 +130,45 @@ struct AddCityView: View {
         guard !cityToSearch.isEmpty else { return }
         isLoading = true
         errorMessage = nil
-        matchedCities = []
 
         print("Searching for city: \(cityToSearch)")
 
         weatherService.getCoordinates(for: cityToSearch) { result in
             DispatchQueue.main.async {
-                isLoading = false
+                self.isLoading = false
                 switch result {
                 case .success(let geoResponses):
                     print("Received geo responses: \(geoResponses)")
                     if let firstGeoResponse = geoResponses.first {
-                        if cityToSearch.lowercased() == firstGeoResponse.name.lowercased() {
-                            if !self.cachedCities.contains(firstGeoResponse.name) {
-                                self.matchedCities.insert(firstGeoResponse.name)
-                                self.cachedCities.insert(firstGeoResponse.name)
+                        if firstGeoResponse.name.lowercased().contains(cityToSearch.lowercased()) {
+                            let storedCityName = firstGeoResponse.name
+
+                            if !self.cachedCities.contains(storedCityName) {
+                                self.cachedCities.insert(storedCityName)
+                                
                                 var cityCoordinates = self.dataStorage.loadCityCoordinates()
-                                cityCoordinates[firstGeoResponse.name] = (firstGeoResponse.lat, firstGeoResponse.lon)
+                                print("Loaded city coordinates before update: \(cityCoordinates)")
+                                
+                                cityCoordinates[storedCityName] = (firstGeoResponse.lat, firstGeoResponse.lon)
+                                
                                 self.dataStorage.saveCityCoordinates(cityCoordinates)
-                                print("CachedCities: \(self.cachedCities)")
-                                self.onAddCity(firstGeoResponse.name, firstGeoResponse.lat, firstGeoResponse.lon)
+                                
+                                self.dataStorage.saveCityNames(self.cachedCities)
+                                
+                                print("City '\(storedCityName)' has been successfully saved to the cache storage.")
+                                print("Current cached cities: \(self.cachedCities)")
+                                print("Coordinates for '\(storedCityName)': \(cityCoordinates[storedCityName]!)")
+                                
+                                print("Full cache of city names: \(self.dataStorage.loadCityNames())")
+                                print("Full cache of city coordinates: \(self.dataStorage.loadCityCoordinates())")
+                                
+                                self.onAddCity(storedCityName, firstGeoResponse.lat, firstGeoResponse.lon)
                             } else {
-                                print("City \(firstGeoResponse.name) is already in the cache.")
+                                print("City \(storedCityName) is already in the cache.")
                             }
                             self.searchText = ""
+                        } else {
+                            self.errorMessage = "No exact match found for city: \(cityToSearch)"
                         }
                     }
                 case .failure(let error):

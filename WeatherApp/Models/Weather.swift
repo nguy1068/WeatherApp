@@ -40,6 +40,10 @@ struct WeatherForecast: Identifiable, Codable {
         let grnd_level: Int?
         let humidity: Int
         let temp_kf: Double?
+
+        var temperatureCelsius: Double {
+            return temp - 273.15
+        }
     }
 
     struct Weather: Codable {
